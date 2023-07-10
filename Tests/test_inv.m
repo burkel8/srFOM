@@ -39,7 +39,7 @@ num_problems = 20; % The number of f(A)b vectors in the sequence to evaluate
 
 s = 1000; % sketching parameter (number of rows of sketched matrix S)
 
-eps = 0; % represents "strength" of matrix perturbation (default 0, special
+pert = 0; % represents "strength" of matrix perturbation (default 0, special
          % case when matrix remains fixed throughout the sequence )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,6 +66,7 @@ param.U = U;
 param.k = k;
 param.t = t;
 param.hS = hS;
+param.s = s;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -124,7 +125,7 @@ fom_err(i) = fom_out.err(fom_out.m);
 % Compute the recycled FOM approximation, assign the output recycling
 % subspace to be the input recycling subspace for the next problem.
 fprintf("\n Computing rfom approximation .... \n");
-[rfom_out] = recycled_fom(A,b,rfom_param);
+[rfom_out] = recycled_fom_closed(A,b,rfom_param);
 rfom_param.U = rfom_out.U;
 rfom_m(i) = rfom_out.m;
 rfom_err(i) = rfom_out.err(rfom_out.m);
@@ -154,7 +155,7 @@ srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
 srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.m);
 
 % Slowly change the matrix for next problem.
-A = A + eps*sprand(A);
+A = A + pert*sprand(A);
 
 end
 

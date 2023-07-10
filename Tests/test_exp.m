@@ -37,7 +37,7 @@ num_problems = 30; % The number of f(A)b vectors in the sequence to evaluate
 
 s = 100; % sketching parameter (number of rows of sketched matrix S)
 
-eps = 0; % represents "strength" of matrix perturbation (default 0, special
+pert = 0; % represents "strength" of matrix perturbation (default 0, special
          % case when matrix remains fixed throughout the sequence )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,6 +73,7 @@ param.U = U;
 param.k = k;
 param.t = t;
 param.hS = hS;
+param.s = s;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -159,7 +160,7 @@ srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
 srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.m);
 
 % Slowly change the matrix for next problem.
-A = A + eps*sprand(A);
+A = A + pert*sprand(A);
 
 % Take new b to be FOM approximation.
 b = fom_approx;

@@ -35,11 +35,11 @@ t = 3;        % Arnoldi truncation parameter for the truncated Arnoldi method
 
 U = [];       % A matrix whos columns span the recycling subspace (default empty)
 
-num_problems = 1; % The number of f(A)b vectors in the sequence to evaluate
+num_problems = 10; % The number of f(A)b vectors in the sequence to evaluate
 
 s = 400; % sketching parameter (number of rows of sketched matrix S)
 
-eps = 0; % represents "strength" of matrix perturbation (default 0, special
+pert = 0; % represents "strength" of matrix perturbation (default 0, special
          % case when matrix remains fixed throughout the sequence )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,6 +71,7 @@ param.U = U;
 param.k = k;
 param.t = t;
 param.hS = hS;
+param.s = s;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -123,7 +124,8 @@ b = randn(n,1);
 if i == 1
 exact = SqA\b;
 else
-    if eps == 0
+    if pert == 0
+        fprintf("herr!")
         exact = SqA\b;
     else
         exact = fm(A,b);
@@ -146,7 +148,7 @@ fom_err(i) = fom_out.err(fom_out.m);
 % Compute the recycled FOM approximation, assign the output recycling
 % subspace to be the input recycling subspace for the next problem.
 fprintf("\n Computing rfom approximation .... \n");
-[rfom_out] = recycled_fom(A,b,rfom_param);
+[rfom_out] = recycled_fom_closed(A,b,rfom_param);
 rfom_param.U = rfom_out.U;
 rfom_m(i) = rfom_out.m;
 rfom_err(i) = rfom_out.err(rfom_out.m);
@@ -176,39 +178,41 @@ srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
 srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.m);
 
 % Slowly change the matrix for next problem.
-A = A + eps*sprand(A);
+A = A + pert*sprand(A);
 
 end
 
+%%
 % Plot final error of each problem in the sequence
 figure
-semilogy(fom_err,'--','LineWidth',2);
+semilogy(fom_err,'-','LineWidth',2);
 grid on;
 hold on
-semilogy(sfom_err,'--s','LineWidth',2);
-semilogy(rfom_err,'--','LineWidth',2);
-semilogy(srfom_sRR_err,'--v','LineWidth',2);
-semilogy(srfom_stabsRR_err,'--v', 'LineWidth',2);
-legend('FOM','sFOM','rFOM (closed)','srFOM (sRR)','srFOM (stabilized sRR)','interpreter','latex','FontSize',13);
+semilogy(sfom_err,'--','LineWidth',2);
+semilogy(rfom_err,'o-','LineWidth',2);
+semilogy(srfom_sRR_err,'o--','LineWidth',2);
+semilogy(srfom_stabsRR_err,'s--', 'LineWidth',2);
+legend('FOM','sFOM','rFOM (Alg. 2.1)','srFOM (Alg. 3.1)','srFOM (stabilized)','interpreter','latex','FontSize',13);
 xlabel('problem','FontSize',13)
 ylabel('relative error','FontSize',13)
 mypdf('fig/inv_sqrt_exact_error_curves',.66,1.4)
 hold off;
-pause(3)
+shg
 
+%%
 %Plot the Arnoldi cycle length needed for each problem to converge.
 figure
-plot(fom_m,'--','LineWidth',2);
+plot(fom_m,'-','LineWidth',2);
 grid on;
 hold on;
-plot(sfom_m,'--s','LineWidth',2);
-plot(rfom_m,'--','LineWidth',2);
-semilogy(srfom_sRR_m,'--v','LineWidth',2);
+plot(sfom_m,'--','LineWidth',2);
+plot(rfom_m,'o-','LineWidth',2);
+semilogy(srfom_sRR_m,'o--','LineWidth',2);
 legend('FOM','sFOM', 'rFOM (closed)','srFOM','interpreter','latex','FontSize',13);
 xlabel('problem','FontSize',13)
 ylabel('$m$','interpreter','latex','FontSize',13);
 mypdf('fig/inv_sqrt_adaptive',.66,1.4)
-pause(2);
+shg
 
 
 

@@ -1,3 +1,27 @@
+% FUNCTION: out = RECYCLED_FOM_CLOSED(A,b,param)
+% A function which computes the recycled FOM approximation to f(A)b,
+% using the closed form formula.
+
+% INPUT:  A   The matrix  
+%         b   The vector
+%        param An input struct with the following fields
+%                 
+%        param.max_it   The maximum number of Arnoldi iterations
+%        param.n        The dimension of A
+%        param.reorth   Re-orthogonalization parameter
+%        param.fm       fm = @(A,b) f(A)*b
+%        param.tol      Convergence tolerance
+%        param.U        Basis for recycling subspace
+%        param.k        Dimension of recycling subspace
+
+% OUTPUT: out           An output struct with the following fields
+%
+%         out.m         Number of Arnoldi iterations executed 
+%         out.approx    Approximation to f(A)b
+%         out.err       Vector storing exact relative errors at each
+%                       iteration
+%         out.U         Updated recycling subspace
+
 function out = recycled_fom_closed(A,b,param)
 
    max_it = param.max_it;

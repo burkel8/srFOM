@@ -1,22 +1,27 @@
-%Function to compute approximation to f(A)b when f is the inverse square root function
-% using implementation 2 of r(FOM)^2. The quadrature rule used is outlined
-% in section 7 of the preprint.
+% FUNCTION: out = RECYCLED_FOM_QUAD(A,b,param)
+% A function which computes the recycled FOM approximation to f(A)b,
+% using the quadrature.
 
-%Inputs:
-% A struct p with the following attributes
-%         b - vector b for which we want to approximate f(A)b
-%        V,H - basis of Krylov subspace and hessenberg matrix H constructed
-%        from Arnoldi process to build basis for Km(A,b)
-%        m - dimension of Krylov subspace
-%        k - dimension of recycling subspace
-%        U - recycling subspace
-%        C - matrix C = A*U.
-%        num_quad - number of quadrature points to be used
-%        f_scalar - the scalar form of the matrix function f(z) , z scalar
-%        f_matrix - A function f_matrix(A,b) computing the action of a matrix function of A 
-%        on the vector b 
+% INPUT:  A   The matrix  
+%         b   The vector
+%        param An input struct with the following fields
+%                 
+%        param.max_it   The maximum number of Arnoldi iterations
+%        param.n        The dimension of A
+%        param.reorth   Re-orthogonalization parameter
+%        param.fm       fm = @(A,b) f(A)*b
+%        param.tol      Convergence tolerance
+%        param.U        Basis for recycling subspace
+%        param.k        Dimension of recycling subspace
 
-%Output: fr: Approximation to f(A)b
+% OUTPUT: out           An output struct with the following fields
+%
+%         out.m         Number of Arnoldi iterations executed 
+%         out.approx    Approximation to f(A)b
+%         out.err       Vector storing exact relative errors at each
+%                       iteration
+%         out.U         Updated recycling subspace
+
 function out = recycled_fom_quad(A,b,param)
 
 

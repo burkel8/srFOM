@@ -1,3 +1,29 @@
+% FUNCTION: out = SKETCHED_RECYCLED_FOM(A,b,param)
+% A function which computes the sketched and recycled FOM approximation to f(A)b 
+
+% INPUT:  A   The matrix  
+%         b   The vector
+%        param An input struct with the following fields
+%                 
+%        param.max_it   The maximum number of Arnoldi iterations
+%        param.n        The dimension of A
+%        param.reorth   Re-orthogonalization parameter
+%        param.fm       fm = @(A,b) f(A)*b
+%        param.tol      Convergence tolerance
+%        param.U        Basis for recycling subspace
+%        param.k        Dimension of recycling subspace
+%        param.t        Truncated Arnoldi truncation parameter
+%        param.hS       Subspace embedding matrix
+%        param.s        Number of rows of subspace embedding matrix
+
+% OUTPUT: out           An output struct with the following fields
+%
+%         out.m         Number of Arnoldi iterations executed 
+%         out.approx    Approximation to f(A)b
+%         out.err       Vector storing exact relative errors at each
+%                       iteration
+%         out.U         Updated recycling subspace
+
 function [out] = sketched_recycled_fom(A,b,param)
 
    max_it = param.max_it;
@@ -15,15 +41,12 @@ function [out] = sketched_recycled_fom(A,b,param)
    err = zeros(1,max_it);
 
    if isempty(U)
-      SU = [];
-      SAU = [];
       SAW = [];
+      SW = [];
    else
-      SU = hS(U);
-
+      SW = hS(U);
       AU = A*U;
-      SAU = hS(AU);
-      SAW = SAU;
+      SAW = hS(AU);
    end
 
     % Arnoldi for (A,b)
@@ -38,15 +61,16 @@ function [out] = sketched_recycled_fom(A,b,param)
         end
         H(j+1,j) = norm(w);
         V(:,j+1) = w/H(j+1,j);
+        W = [ U, V(:,1:j) ]; 
+ 
+    % augmented sketched Arnoldi approx
+       SW = [SW hS(V(:,j))];
+       Sb = hS(b);
 
-        W = [U , V(:,1:j)];
-        SW = [SU, hS(V(:,1:j))];
-       
-        Sb = hS(b);
         [Q,R] = qr(SW,0);
         approx = W*(R\fm(Q'*SAW/R, Q'*Sb));
 
-        err(j) = norm(exact - approx)/norm(b);
+        err(j) = norm(exact - approx)/norm(exact);
 
         if err(j) < tol
               fprintf("\n Early convergence at iteration %d \n", j);
@@ -83,12 +107,7 @@ function [out] = sketched_recycled_fom(A,b,param)
                  P(:,i) = harmVecs(:,iperm(i));
                end
                 out.U = W*VV*P;
-
-
-              end
-
-
-
+               end
               return;
             end
     end
@@ -112,7 +131,7 @@ function [out] = sketched_recycled_fom(A,b,param)
 
     elseif param.recycle_method == "stabsRR"
 
-  %% More stable version 
+     %% More stable version 
     [UU,Sig,VV]=svd(SW,"econ");
     H = UU'*SAW*VV;
     [harmVecs, harmVals] = eig(H,Sig);

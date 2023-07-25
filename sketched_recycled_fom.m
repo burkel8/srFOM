@@ -29,7 +29,7 @@ function [out] = sketched_recycled_fom(A,b,param)
 max_it = param.max_it;
 n = param.n;
 fm = param.fm;
-exact = param.exact;
+
 tol = param.tol;
 hS = param.hS;
 t = param.t;
@@ -37,12 +37,13 @@ U = param.U;
 k = param.k;
 err_monitor = param.err_monitor;
 d = param.d;
-
+s = param.s;
 mv = 0;
 d_it = 1;
 prev_approx = b;
 
-V = zeros(n,max_it);
+V = zeros(n,max_it+1);
+SV = zeros(s,max_it+1);
 H = zeros(max_it+1,max_it);
 err = zeros(1,max_it);
 
@@ -50,52 +51,69 @@ if isempty(U)
     SAW = [];
     SW = [];
 else
-    SW = hS(U);
-    AU = A*U;
-    mv = mv + k;
-    SAW = hS(AU);
+
+    % In the special case when the matrix does not change, we can re-use SU
+    % from previous problem,
+    if param.pert == 0
+        SW = param.SU;
+        SAW = param.SAU;
+        mv = mv + 0;
+    else
+        SW = param.SU;
+        SAW = hS(A*U);
+        mv = mv + k;
+    end
 end
 
 % Arnoldi for (A,b)
+Sb = hS(b);              % SG: moved this out of for-j loop as only done once
+SV(:,1) = Sb/norm(b);
 V(:,1) = b/norm(b);
 for j = 1:max_it
     w = A*V(:,j);
     mv = mv + 1;
-    SAW = [SAW, hS(w)];
 
     for i = max(j-t+1,1):j
         H(i,j) = V(:,i)'*w;
         w = w - V(:,i)*H(i,j);
     end
+
     H(j+1,j) = norm(w);
     V(:,j+1) = w/H(j+1,j);
-
-    W = [ U, V(:,1:j) ];
-
-    % augmented sketched Arnoldi approx
-    SW = [SW hS(V(:,j))];
-    Sb = hS(b);
+    SV(:,j+1) = hS(V(:,j+1));
 
     % Every d iterations, compute either exact error or an estimate of the error
     % using a previous approximation
     if rem(j,d) == 0
 
+        SW = [ param.SU, SV(:,1:j) ];
+
+        % No need to sketch A*V since S*A*V = (S*V)*H
+        SAV = SV(:,1:j+1)*H(1:j+1,1:j);
+        SAW = [ param.SAU, SAV ];
 
         [Q,R] = qr(SW,0);
-        approx = W*(R\fm(Q'*SAW/R, Q'*Sb));
+        coeffs = R\fm(Q'*SAW/R, Q'*Sb);
 
-        if err_monitor == "exact"
-
-            err(d_it) = norm(exact - approx)/norm(exact);
-        elseif err_monitor == "estimate"
-
-            err(d_it) = norm(prev_approx - approx)/norm(b);
-            prev_approx = approx;
-
+        % Update approximation without explicitly forming [U V(:,1:j)]
+        if size(U,2) > 0
+            approx = U*coeffs(1:size(U,2),1) + V(:,1:j)*coeffs(size(U,2)+1:end,1);
+        else
+            approx = V(:,1:j)*coeffs(size(U,2)+1:end,1);
         end
 
+        % Compute either exact error or an estimate baseed off a previous
+        % approximation
+        if err_monitor == "exact"
+            exact = param.exact;
+            err(d_it) = norm(exact - approx)/norm(exact);
+        elseif err_monitor == "estimate"
+            err(d_it) = norm(prev_approx - approx)/norm(b);
+            prev_approx = approx;
+        end
+
+        % Early convergence of srFOM
         if err(d_it) < tol
-            fprintf("\n Early convergence at iteration %d \n", j);
             break;
         end
 
@@ -120,7 +138,17 @@ else
     keep = k;
 end
 
-out.U = W*X(:,1:keep);
+% cheaper update of recycling subspace by avoiding explicilty constructing the
+% matrix [U V(:,1:j)]
+if size(U,2) > 0
+    out.U = U*X(1:size(U,2),1:keep) + V(:,1:j)*X(size(U,2)+1:end,1:keep);
+else
+    out.U = V(:,1:j)*X(size(U,2)+1:end,1:keep);
+end
+
+out.SU = SW*X(:,1:keep);
+out.SAU = SAW*X(:,1:keep);
+
 out.m = j;
 out.approx = approx;
 out.err = err(:,1:d_it);

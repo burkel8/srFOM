@@ -26,7 +26,7 @@ function [out] = sketched_fom(A,b,param)
 max_it = param.max_it;
 n = param.n;
 fm = param.fm;
-exact = param.exact;
+
 tol = param.tol;
 hS = param.hS;
 t = param.t;
@@ -38,38 +38,40 @@ mv = 0;
 d_it = 1;
 prev_approx = b;
 
-V = zeros(n,max_it);
+V = zeros(n,max_it+1);
 H = zeros(max_it+1,max_it);
-SW = zeros(s,max_it);
-SAW = zeros(s,max_it);
+SW = zeros(s,max_it+1);
 err = zeros(1,max_it);
 
-% Arnoldi for (A,b)
+Sb = hS(b);
+SW(:,1) = Sb/norm(b);
 V(:,1) = b/norm(b);
+
 for j = 1:max_it
     w = A*V(:,j);
     mv = mv + 1;
-    SAW(:,j) = hS(w);
 
     for i = max(j-t+1,1):j
         H(i,j) = V(:,i)'*w;
         w = w - V(:,i)*H(i,j);
     end
+
     H(j+1,j) = norm(w);
     V(:,j+1) = w/H(j+1,j);
-
-    % sketched Arnoldi (sFOM)
-    SW(:,j) = hS(V(:,j));  Sb = hS(b);
+    SW(:,j+1) = hS(V(:,j+1));
 
     % Every d iterations, compute either exact error or an estimate of the error
     % using a previous approximation
     if rem(j,d) == 0
+
+        SAW = SW(:,1:j+1)*H(1:j+1,1:j);
 
         [Q,R] = qr(SW(:,1:j),0);
         approx = V(:,1:j)*(R\fm(Q'*SAW(:,1:j)/R, Q'*Sb));
 
         if err_monitor == "exact"
 
+            exact = param.exact;
             err(d_it) = norm(exact - approx)/norm(exact);
 
         elseif err_monitor == "estimate"
@@ -79,8 +81,8 @@ for j = 1:max_it
 
         end
 
+        % Early convergence of sFOM
         if err(d_it) < tol
-            fprintf("\n Early convergence at iteration %d \n", j);
             break;
         end
 

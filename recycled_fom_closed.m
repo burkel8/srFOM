@@ -28,7 +28,7 @@ max_it = param.max_it;
 n = param.n;
 fm = param.fm;
 reorth = param.reorth;
-exact = param.exact;
+
 tol = param.tol;
 U = param.U;
 k = param.k;
@@ -61,37 +61,64 @@ for j = 1:max_it
 
     % Every d iterations, compute either exact error or an estimate of the error
     % using a previous approximation
+
     if rem(j,d) == 0
 
-        W = [ V(:,1:j), U ];
-
-        % Gram-Schmidt for U against V
-        for l = j+1:size(W,2)
-            w = W(:,l);
-            for reo = 0:reorth
-                for i = 1:l-1
-                    h = W(:,i)'*w;
-                    w = w - W(:,i)*h;
-                end
-            end
-            w = w/norm(w);
-            W(:,l) = w;
-        end
-
+        % If we do not yet have U, then the approximation is equivelant to
+        % the standard Arnoldi approximation
         if isempty(U)
             HH = H(1:j,1:j);
+            coeffs = fm(HH, norm(b)*eye(j,1));
+            approx = V(:,1:j)*coeffs(1:j,1);
+
+            % Or else if we do have a U...
         else
-            AU = A*W(:,j+1:end);
+
+            % Orthogonalize U against V for numerical stability, while avoiding
+            % explicitly constructing the matrix [V(:,1:j) U]
+            for l = 1:size(U,2)
+
+                w = U(:,l);
+
+                for reo = 0:reorth
+
+                    % Orthogonalize columns of U against W
+                    for i = 1:j
+                        h = V(:,i)'*w;
+                        w = w - V(:,i)*h;
+                    end
+
+                    % Orthogonalize columns of U against eachother
+                    for i = 1:l-1
+                        h = U(:,i)'*w;
+                        w = w - U(:,i)*h;
+                    end
+                end
+
+                w = w/norm(w);
+                U(:,l) = w;
+            end
+
+            % Is there any way we can do this more cheaply? Right now A*U
+            % is has to be recomputed every d iterations due to the
+            % orthogonalization.
+            AU = A*U;
             em = zeros(j,1); em(j) = 1;
-            HH = [ H(1:j,1:j) ;
-                H(j+1,j)*(W(:,j+1:end)'*V(:,j+1))*em' ];
-            HH = [ HH , W'*AU ];
+
+            HH = [ H(1:j,1:j)  V(:,1:j)'*AU;
+                H(j+1,j)*(U'*V(:,j+1))*em' U'*AU];
+
+            % Update approximation without explicitly forming [V(:,1:j) U]
+            coeffs = fm(HH, norm(b)*eye(j+k,1));
+            approx =  V(:,1:j)*coeffs(1:j,:) + U*coeffs(j+1:end,:);
+
         end
 
-        approx = W*fm(HH, norm(b)*eye(size(W,2),1));
-
+        % Compute either an exact relative error, or else an estimate or
+        % the error from a previous iteration
         if err_monitor == "exact"
 
+            exact = param.exact;
             err(d_it) = norm(exact - approx)/norm(exact);
 
         elseif err_monitor == "estimate"
@@ -101,8 +128,8 @@ for j = 1:max_it
 
         end
 
+        % Early convergence of rFOM
         if err(d_it) < tol
-            fprintf("\n Early convergence at iteration %d \n", j);
             break;
         end
 
@@ -113,6 +140,7 @@ for j = 1:max_it
 end
 
 mv = mv + k;
+
 % get updated Ritz vectors
 [X,T] = schur(HH);
 ritz = ordeig(T);
@@ -127,7 +155,14 @@ else
     keep = min(k,j);
 end
 
-out.U = W*X(:,1:keep);
+% cheaper update of recycling subspace by avoiding explicilty constructing the
+% matrix [V(:,1:j) U]
+if size(U,2) > 0
+    out.U = V(:,1:j)*X(1:j,1:keep) + U*X(j+1:end,1:keep);
+else
+    out.U = V(:,1:j)*X(:,1:keep);
+end
+
 out.m = j;
 out.approx = approx;
 out.err = err(:,1:d_it);

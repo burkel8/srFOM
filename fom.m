@@ -22,7 +22,7 @@ max_it = param.max_it;
 n = param.n;
 fm = param.fm;
 reorth = param.reorth;
-exact = param.exact;
+
 tol = param.tol;
 d = param.d;
 err_monitor = param.err_monitor;
@@ -58,14 +58,11 @@ for j = 1:max_it
         approx = V(:,1:j)*fm(H(1:j,1:j), norm(b)*eye(j,1));
 
         if err_monitor == "exact"
-
+            exact = param.exact;
             err(d_it) = norm(exact - approx)/norm(exact);
-
         elseif err_monitor == "estimate"
-
             err(d_it) = norm(prev_approx - approx)/norm(b);
             prev_approx = approx;
-
         end
 
         if err(d_it) < tol

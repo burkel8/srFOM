@@ -16,7 +16,7 @@ close all
 rng('default')
 
 % The maximum number of iterations of the methods
-max_it = 20;
+max_it = 40;
 
 % Boolean variable to descide if the Arnoldi vectors in fom
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
@@ -24,13 +24,13 @@ max_it = 20;
 reorth = 0;
 
 % The error tolerance used to define convergence.
-tol = 1e-12;
+tol = 1e-16;
 
 % Error tolerance of SVD decompositon
-svd_tol = 1e-15;
+svd_tol = 1e-16;
 
 % The dimension of the recycling subspace used by rfom and srfom
-k = 2;
+k = 15;
 
 % Arnoldi truncation parameter for the truncated Arnoldi method
 % used in sfom and srfom. Each Arnoldi vector is
@@ -44,39 +44,36 @@ U = [];
 num_problems = 30;
 
 % sketching parameter (number of rows of sketched matrix S)
-s = 1000;
+s = 700;
 
 % represents "strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
-pert = 0;
+pert = 0.0000001;
 
 % Compute exact error or estimate error ever d iterations
 d = 5;
 
+% exponential time step
+tt = 0.01;
+
 % err_monitor set to "estimate" or "exact" to determine if the error should
 % be estimated or computed exactly.
-err_monitor = "exact";
+err_monitor = "estimate";
 
 addpath(genpath('../'));
 
-% Generate tridiag matrix
-n = 1000;
-A = -1000*gallery('tridiag', n);
+load("data/cdBeispiel.mat"); A = sparse(A);
+n = size(A,1);
+rng(1);
 b = rand(n,1);
-
-%%% Other Matrices to try %%%%%
-%load("data/convdiff_matrix.mat");
-
-%load("data/cdBeispiel.mat"); A = sparse(A);
-%n = size(A,1);
 
 % Construct subspace embedding matrix
 hS = srft(n,s);
 
 % Construct function handle which inputs a matrix A, vector b and returns
 % f(A)*b where f is the exponential function
-fm = @(X,v) expm(0.1*full(X))*v;
-ExA = expm(0.1*full(A));
+fm = @(X,v) expm(tt*full(X))*v;
+ExA = expm(tt*full(A));
 
 % Set up algorithm input struct
 param.max_it = max_it;
@@ -85,12 +82,15 @@ param.reorth = reorth;
 param.fm = fm;
 param.tol = tol;
 param.U = U;
+param.SU = [];
+param.SAU = [];
 param.k = k;
 param.t = t;
 param.hS = hS;
 param.s = s;
 param.d = d;
 param.err_monitor = err_monitor;
+param.pert = pert;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -108,6 +108,14 @@ rfom_m = zeros(1,num_problems);
 sfom_m = zeros(1,num_problems);
 srfom_sRR_m = zeros(1,num_problems);
 srfom_stabsRR_m = zeros(1,num_problems);
+
+% Vectors of length num_problems which will store the total number
+% of MATVEC's needed for each problem in the sequence to converge.
+fom_mv = zeros(1,num_problems);
+rfom_mv = zeros(1,num_problems);
+sfom_mv = zeros(1,num_problems);
+srfom_sRR_mv = zeros(1,num_problems);
+srfom_stabsRR_mv = zeros(1,num_problems);
 
 % Vectors of length num_problems which will store the final exact error
 % (only meaningful if the max number of iterations were performed)
@@ -136,6 +144,7 @@ for i = 1:num_problems
     [fom_out] = fom(A,b,fom_param);
     fom_approx = fom_out.approx;
     fom_m(i) = fom_out.m;
+    fom_mv(i) = fom_out.mv;
     fom_err(i) = fom_out.err(fom_out.d_it);
 
     % Compute the recycled FOM approximation, assign the output recycling
@@ -144,12 +153,14 @@ for i = 1:num_problems
     [rfom_out] = recycled_fom_closed(A,b,rfom_param);
     rfom_param.U = rfom_out.U;
     rfom_m(i) = rfom_out.m;
+    rfom_mv(i) = rfom_out.mv;
     rfom_err(i) = rfom_out.err(rfom_out.d_it);
 
     % Compute sketched FOM approximation
     fprintf("\n Computing sfom approximation .... \n");
     sfom_out = sketched_fom(A,b,sfom_param);
     sfom_m(i) = sfom_out.m;
+    sfom_mv(i) = sfom_out.mv;
     sfom_err(i) = sfom_out.err(sfom_out.d_it);
 
     % Compute the sketched and recycled FOM approximation, assign the output
@@ -160,14 +171,20 @@ for i = 1:num_problems
     fprintf("\n Computing srfom (with sRR) approximation .... \n");
     srfom_sRR_out = sketched_recycled_fom(A,b,srfom_sRR_param);
     srfom_sRR_param.U = srfom_sRR_out.U;
+    srfom_sRR_param.SU = srfom_sRR_out.SU;
+    srfom_sRR_param.SAU = srfom_sRR_out.SAU;
     srfom_sRR_m(i) = srfom_sRR_out.m;
+    srfom_sRR_mv(i) = srfom_sRR_out.mv;
     srfom_sRR_err(i) = srfom_sRR_out.err(srfom_sRR_out.d_it);
 
     % Then, call the method which uses the stabilized sketched Rayleigh-Ritz
     fprintf("\n Computing srfom (with stabilized sRR) approximation .... \n");
     srfom_stabsRR_out = sketched_recycled_fom_stabilized(A,b,srfom_stabsRR_param);
     srfom_stabsRR_param.U = srfom_stabsRR_out.U;
+    srfom_stabsRR_param.SU = srfom_stabsRR_out.SU;
+    srfom_stabsRR_param.SAU = srfom_stabsRR_out.SAU;
     srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
+    srfom_stabsRR_mv(i) = srfom_stabsRR_out.mv;
     srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.d_it);
 
     % Slowly change the matrix for next problem.
@@ -175,11 +192,10 @@ for i = 1:num_problems
 
     % Take new b to be FOM approximation.
     b = fom_approx;
-
 end
 
 % Plot final error of each problem in the sequence
-figure
+figure;
 semilogy(fom_err,'-','LineWidth',2);
 grid on;
 hold on
@@ -193,5 +209,26 @@ ylabel('relative error','FontSize',13)
 mypdf('fig/exp_exact_error_curves',.66,1.4)
 hold off;
 shg
+
+%Plot the Arnoldi cycle length needed for each problem to converge.
+figure
+plot(fom_m,'-','LineWidth',2);
+grid on;
+hold on;
+plot(sfom_m,'--','LineWidth',2);
+plot(rfom_m,'V-','LineWidth',2);
+semilogy(srfom_sRR_m,'V--','LineWidth',2);
+semilogy(srfom_stabsRR_m,'s--','LineWidth',2);
+legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stabilized)','interpreter','latex','FontSize',13);
+xlabel('problem','FontSize',13)
+ylabel('$m$','interpreter','latex','FontSize',13);
+mypdf('fig/inv_sqrt_adaptive',.66,1.4)
+shg
+
+fprintf("\n ####  MATVEC's  #### \n");
+problem_number = 1:num_problems;
+methods = {'fom','sfom','rfom','rsfom', 'rsfom (stabilized)'};
+T = table(problem_number',fom_mv',sfom_mv',rfom_mv',srfom_sRR_mv',srfom_stabsRR_mv');
+T.Properties.VariableNames = ["problem","fom","sfom","rfom","srfom", "srfom (stabilized)"]
 
 

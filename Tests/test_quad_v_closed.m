@@ -81,6 +81,8 @@ param.reorth = reorth;
 param.fm = fm;
 param.tol = tol;
 param.U = U;
+param.SU = [];
+param.SAU = [];
 param.k = k;
 param.t = t;
 param.hS = hS;
@@ -175,6 +177,8 @@ for i = 1:num_problems
     fprintf("\n Computing srfom (with sRR) approximation .... \n");
     srfom_out = sketched_recycled_fom_stabilized(A,b,srfom_param);
     srfom_param.U = srfom_out.U;
+    srfom_param.SU = srfom_out.SU;
+    srfom_param.SAU = srfom_out.SAU;
     srfom_err(i) = srfom_out.err(srfom_out.m);
 
     % Slowly change the matrix for next problem.
@@ -187,7 +191,7 @@ semilogy(fom_err,'-','LineWidth',2);
 grid on;
 hold on
 semilogy(rfom_quad1_err,'-o','LineWidth',2);
-semilogy(rfom_quad2_err,'-o','LineWidth',2);
+semilogy(rfom_quad2_err,'-*','LineWidth',2);
 semilogy(rfom_closed_err,'V-','LineWidth',2);
 semilogy(srfom_err,'V--', 'LineWidth',2);
 legend('FOM','rFOM (quad) 50','rFOM (quad) 100','rFOM (Alg.2.1)','srFOM (Alg. 3.1)','interpreter','latex','FontSize',13);

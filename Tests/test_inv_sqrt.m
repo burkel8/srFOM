@@ -18,7 +18,7 @@ close all
 rng('default')
 
 % The maximum number of iterations of the methods
-max_it = 100;
+max_it = 200;
 
 % Boolean variable to descide if the Arnoldi vectors in fom
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
@@ -26,13 +26,13 @@ max_it = 100;
 reorth = 0;
 
 % The error tolerance used to define convergence.
-tol = 1e-12;
+tol = 1e-9;
 
 % Error tolerance of SVD decompositon
 svd_tol = 1e-15;
 
 % The dimension of the recycling subspace used by rfom and srfom
-k = 10;
+k = 30;
 
 % Arnoldi truncation parameter for the truncated Arnoldi method
 % used in sfom and srfom. Each Arnoldi vector is
@@ -46,18 +46,18 @@ U = [];
 num_problems = 5;
 
 % sketching parameter (number of rows of sketched matrix S)
-s = 800;
+s = 400;
 
 % represents "strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
 pert = 0.00000001;
 
 % Compute exact error or estimate error ever d iterations
-d = 5;
+d = 1;
 
 % err_monitor set to "estimate" or "exact" to determine if the error should
 % be estimated or computed exactly.
-err_monitor = "estimate";
+err_monitor = "exact";
 
 addpath(genpath('../'));
 
@@ -90,6 +90,9 @@ param.hS = hS;
 param.s = s;
 param.d = d;
 param.err_monitor = err_monitor;
+param.SU = [];
+param.SAU = [];
+param.pert = pert;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -189,14 +192,18 @@ for i = 1:num_problems
     fprintf("\n Computing srfom (with sRR) approximation .... \n");
     srfom_sRR_out = sketched_recycled_fom(A,b,srfom_sRR_param);
     srfom_sRR_param.U = srfom_sRR_out.U;
+    srfom_sRR_param.SU = srfom_sRR_out.SU;
+    srfom_sRR_param.SAU = srfom_sRR_out.SAU;
     srfom_sRR_m(i) = srfom_sRR_out.m;
     srfom_sRR_mv(i) = srfom_sRR_out.mv;
     srfom_sRR_err(i) = srfom_sRR_out.err(srfom_sRR_out.d_it);
 
-    % Then, call the method which uses the stabilized sketched Rayleigh-Ritz
+    %Then, call the method which uses the stabilized sketched Rayleigh-Ritz
     fprintf("\n Computing srfom (with stabilized sRR) approximation .... \n");
     srfom_stabsRR_out = sketched_recycled_fom_stabilized(A,b,srfom_stabsRR_param);
     srfom_stabsRR_param.U = srfom_stabsRR_out.U;
+    srfom_stabsRR_param.SU = srfom_stabsRR_out.SU;
+    srfom_stabsRR_param.SAU = srfom_stabsRR_out.SAU;
     srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
     srfom_stabsRR_mv(i) = srfom_stabsRR_out.mv;
     srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.d_it);
@@ -205,6 +212,12 @@ for i = 1:num_problems
     A = A + pert*sprand(A);
 
 end
+
+% No need to update recycling subspace for final problem, so forget about
+% final k matrix vector products (in reality we would never do these anyway!)
+rfom_mv(num_problems) = rfom_mv(num_problems) - k;
+srfom_sRR_mv(num_problems) = srfom_sRR_mv(num_problems) - k;
+srfom_stabsRR_mv(num_problems) = srfom_stabsRR_mv(num_problems) - k;
 
 % Plot final error of each problem in the sequence
 figure

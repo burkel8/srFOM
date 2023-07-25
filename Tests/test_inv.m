@@ -18,7 +18,7 @@ close all
 rng('default')
 
 % The maximum number of iterations of the methods
-max_it = 100;
+max_it = 400;
 
 % Boolean variable to descide if the Arnoldi vectors in fom
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
@@ -26,13 +26,13 @@ max_it = 100;
 reorth = 0;
 
 % The error tolerance used to define convergence.
-tol = 1e-12;
+tol = 1e-15;
 
 % Error tolerance of SVD decompositon
 svd_tol = 1e-15;
 
 % The dimension of the recycling subspace used by rfom and srfom
-k = 10;
+k = 30;
 
 % Arnoldi truncation parameter for the truncated Arnoldi method
 % used in sfom and srfom. Each Arnoldi vector is
@@ -43,14 +43,14 @@ t = 3;
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
-num_problems = 5;
+num_problems = 3;
 
 % sketching parameter (number of rows of sketched matrix S)
-s = 800;
+s = 600;
 
 % represents "strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
-pert = 0.00000001;
+pert = 0;
 
 % Compute exact error or estimate error ever d iterations
 d = 5;
@@ -62,8 +62,8 @@ err_monitor = "estimate";
 addpath(genpath('../'));
 
 % Generate Poisson Matrix
-A = gallery("poisson", 100);
-n = size(A,1);
+n = 10609;
+A = gallery('neumann', n) + 0.0001*speye(n);
 
 % Construct subspace embedding matrix
 hS = srft(n,s);
@@ -79,12 +79,15 @@ param.reorth = reorth;
 param.fm = fm;
 param.tol = tol;
 param.U = U;
+param.SU = [];
+param.SAU = [];
 param.k = k;
 param.t = t;
 param.hS = hS;
 param.s = s;
 param.d = d;
 param.err_monitor = err_monitor;
+param.pert = pert;
 
 % input structs for fom, rfom, srfom
 fom_param = param;
@@ -127,6 +130,9 @@ for i = 1:num_problems
     % Create b vector
     rng(i);
     b = randn(n,1);
+
+    if err_monitor ~= "estimate"
+    
     exact = fm(A,b);
 
     fom_param.exact = exact;
@@ -134,6 +140,8 @@ for i = 1:num_problems
     sfom_param.exact = exact;
     srfom_sRR_param.exact = exact;
     srfom_stabsRR_param.exact = exact;
+
+    end
 
     % Compute standard Arnoldi approximation.
     fprintf("\n Computing fom approximation .... \n");
@@ -166,14 +174,18 @@ for i = 1:num_problems
     fprintf("\n Computing srfom (with sRR) approximation .... \n");
     [srfom_sRR_out] = sketched_recycled_fom(A,b,srfom_sRR_param);
     srfom_sRR_param.U = srfom_sRR_out.U;
+    srfom_sRR_param.SU = srfom_sRR_out.SU;
+    srfom_sRR_param.SAU = srfom_sRR_out.SAU;
     srfom_sRR_m(i) = srfom_sRR_out.m;
     srfom_sRR_mv(i) = srfom_sRR_out.mv;
     srfom_sRR_err(i) = srfom_sRR_out.err(srfom_sRR_out.d_it);
 
     % Then, call the method which uses the stabilized sketched Rayleigh-Ritz
     fprintf("\n Computing srfom (with stabilized sRR) approximation .... \n");
-    [srfom_stabsRR_out] = sketched_recycled_fom(A,b,srfom_stabsRR_param);
+    [srfom_stabsRR_out] = sketched_recycled_fom_stabilized(A,b,srfom_stabsRR_param);
     srfom_stabsRR_param.U = srfom_stabsRR_out.U;
+    srfom_stabsRR_param.SU = srfom_stabsRR_out.SU;
+    srfom_stabsRR_param.SAU = srfom_stabsRR_out.SAU;
     srfom_stabsRR_m(i) = srfom_stabsRR_out.m;
     srfom_stabsRR_mv(i) = srfom_stabsRR_out.mv;
     srfom_stabsRR_err(i) = srfom_stabsRR_out.err(srfom_stabsRR_out.d_it);
@@ -182,6 +194,12 @@ for i = 1:num_problems
     A = A + pert*sprand(A);
 
 end
+
+% No need to update recycling subspace for final problem, so forget about
+% final k matrix vector products (in reality we would never do these anyway!)
+rfom_mv(num_problems) = rfom_mv(num_problems) - k;
+srfom_sRR_mv(num_problems) = srfom_sRR_mv(num_problems) - k;
+srfom_stabsRR_mv(num_problems) = srfom_stabsRR_mv(num_problems) - k;
 
 % Plot final error of each problem in the sequence
 figure
@@ -207,7 +225,8 @@ hold on;
 plot(sfom_m,'--','LineWidth',2);
 plot(rfom_m,'V-','LineWidth',2);
 semilogy(srfom_sRR_m,'V--','LineWidth',2);
-legend('FOM','sFOM', 'rFOM','srFOM','interpreter','latex','FontSize',13);
+semilogy(srfom_stabsRR_m,'s--','LineWidth',2);
+legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stabilized)','interpreter','latex','FontSize',13);
 xlabel('problem','FontSize',13)
 ylabel('$m$','interpreter','latex','FontSize',13);
 mypdf('fig/inv_adaptive',.66,1.4)

@@ -3,7 +3,7 @@ function [out] = sketched_recycled_fom_stabilized(A,b,param)
 % A function which computes the sketched and recycled FOM (with
 % stabilization) approximation to f(A)b
 %
-% INPUT:  A       n-by-n matrix
+% INPUT:  A       n-by-n matrix or function handle
 %         b       n-by-1 vector
 %         param   struct with the following fields:
 %
@@ -29,6 +29,9 @@ function [out] = sketched_recycled_fom_stabilized(A,b,param)
 %         out.SU, SAU    sketches of updated recycling subspace
 %         out.mv         number of matrix-vector products
 
+if isnumeric(A)
+    A = @(v) A*v;
+end
 
 max_it = param.max_it;
 n = param.n;
@@ -41,8 +44,9 @@ k = param.k;
 d = param.d;
 s = param.s;
 svd_tol = param.svd_tol;
-
 mv = 0;
+ip = 0;
+sv = 0;
 d_it = 1;
 prev_approx = b;
 err_monitor = param.err_monitor;
@@ -59,34 +63,40 @@ else
     % In the special case when the matrix does not change, we can re-use SU
     % from previous problem,
     if param.pert == 0
+        %fprintf("\npert = 0\n");
         SW = param.SU;
         SAW = param.SAU;
-        mv = mv + 0;
     else
+        %fprintf("\npert not 0\n");
         SW = param.SU;
-        SAW = hS(A*U);
-        mv = mv + k;
-    end
+        SAW = hS(A(U));
+        mv = mv + size(U,2);
+        sv = sv + size(U,2);
+   end
 end
 
 % Arnoldi for (A,b)
 Sb = hS(b);
+sv = sv + 1;
 SV(:,1) = Sb/norm(b);
 V(:,1) = b/norm(b);
 for j = 1:max_it
-    w = A*V(:,j);
+    w = A(V(:,j));
     mv = mv + 1;
     for i = max(j-t+1,1):j
         H(i,j) = V(:,i)'*w;
+        ip = ip + 1;
         w = w - V(:,i)*H(i,j);
     end
     H(j+1,j) = norm(w);
+    ip = ip + 1;
     V(:,j+1) = w/H(j+1,j);
     SV(:,j+1) = hS(V(:,j+1));
+    sv = sv + 1;
 
     % Every d iterations, compute either exact error or an estimate
     % of the error using a previous approximation
-    if rem(j,d) == 0
+    if rem(j,d) == 0 || j == max_it
 
         SW = [ param.SU, SV(:,1:j) ];
 
@@ -152,7 +162,7 @@ else
     keep = k;
 end
 
-% cheap update of recycling subspace without explicitly constructing [U V(:1:j)]
+% cheap update of recycling subspace without explicitly constructing [U V(:,1:j)]
 JZ = J*Z(:,1:keep);
 if size(U,2) > 0
     out.U = U*JZ(1:size(U,2),:) + V(:,1:j)*JZ(size(U,2)+1:end,:);
@@ -162,9 +172,11 @@ end
 
 out.SU = SW*JZ;
 out.SAU = SAW*JZ;
-
+out.k = keep;
 out.m = j;
 out.mv = mv;
+out.ip = ip;
+out.sv = sv;
 out.approx = approx;
 out.err = err(:,1:d_it);
 out.d_it = d_it;

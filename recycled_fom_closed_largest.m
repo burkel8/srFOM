@@ -1,4 +1,4 @@
-% FUNCTION: out = RECYCLED_FOM_CLOSED(A,b,param)
+% FUNCTION: out = RECYCLED_FOM_CLOSED_LARGEST(A,b,param)
 % A function which computes the recycled FOM approximation to f(A)b,
 % using the closed form formula.
 
@@ -22,7 +22,7 @@
 %                       iteration
 %         out.U         Updated recycling subspace
 
-function out = recycled_fom_closed(A,b,param)
+function out = recycled_fom_closed_largest(A,b,param)
 
 if isnumeric(A)
     A = @(v) A*v;
@@ -137,7 +137,7 @@ end
 % get updated Ritz vectors
 [X,T] = schur(HH);
 ritz = ordeig(T);
-[~,ind] = sort(abs(ritz),'ascend');
+[~,ind] = sort(real(ritz),'descend');
 select = false(length(ritz),1);
 select(ind(1:min(k,j))) = 1;
 [X,T] = ordschur(X,T,select);  % H = X*T*X'

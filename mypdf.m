@@ -1,7 +1,7 @@
 function mypdf(fname,r,s)
 
-%disp('MYPDF CURRENTLY DISABLED');
-%return
+% disp('MYPDF CURRENTLY DISABLED');
+% return
 
 
 if nargin < 2,

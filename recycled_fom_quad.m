@@ -2,7 +2,7 @@
 % A function which computes the recycled FOM approximation to f(A)b,
 % using the quadrature.
 
-% INPUT:  A   The matrix
+% INPUT:  A   The matrix or function handle
 %         b   The vector
 %        param An input struct with the following fields
 %
@@ -24,6 +24,9 @@
 
 function out = recycled_fom_quad(A,b,param)
 
+if isnumeric(A)
+    A = @(v) A*v;
+end
 
 max_it = param.max_it;
 n = param.n;
@@ -41,7 +44,7 @@ H = zeros(max_it+1,max_it);
 % Arnoldi for (A,b)
 V(:,1) = b/norm(b);
 for j = 1:max_it
-    w = A*V(:,j);
+    w = A(V(:,j));
     for reo = 0:reorth
         for i = 1:j
             h = V(:,i)'*w;
@@ -72,7 +75,7 @@ if isempty(U)
     return;
 else
 
-    C = A*U;
+    C = A(U);
     term1 = zeros(max_it+k,1);
 
     % Define constant factors appearing in quadrature integration

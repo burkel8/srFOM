@@ -1,7 +1,7 @@
 % FUNCTION: out = SKETCHED_RECYCLED_FOM(A,b,param)
 % A function which computes the sketched and recycled FOM approximation to f(A)b
 
-% INPUT:  A   The matrix
+% INPUT:  A   The matrix or function handle
 %         b   The vector
 %        param An input struct with the following fields
 %
@@ -26,10 +26,13 @@
 
 function [out] = sketched_recycled_fom(A,b,param)
 
+if isnumeric(A)
+    A = @(v) A*v;
+end
+
 max_it = param.max_it;
 n = param.n;
 fm = param.fm;
-
 tol = param.tol;
 hS = param.hS;
 t = param.t;
@@ -39,6 +42,8 @@ err_monitor = param.err_monitor;
 d = param.d;
 s = param.s;
 mv = 0;
+ip = 0;
+sv = 0;
 d_it = 1;
 prev_approx = b;
 
@@ -60,31 +65,36 @@ else
         mv = mv + 0;
     else
         SW = param.SU;
-        SAW = hS(A*U);
-        mv = mv + k;
+        SAW = hS(A(U));
+        mv = mv + size(U,2);
+        sv = sv + size(U,2);
     end
 end
 
 % Arnoldi for (A,b)
 Sb = hS(b);              % SG: moved this out of for-j loop as only done once
+sv = sv + 1;
 SV(:,1) = Sb/norm(b);
 V(:,1) = b/norm(b);
 for j = 1:max_it
-    w = A*V(:,j);
+    w = A(V(:,j));
     mv = mv + 1;
 
     for i = max(j-t+1,1):j
         H(i,j) = V(:,i)'*w;
         w = w - V(:,i)*H(i,j);
+        ip = ip + 1;
     end
 
     H(j+1,j) = norm(w);
+    ip = ip + 1;
     V(:,j+1) = w/H(j+1,j);
     SV(:,j+1) = hS(V(:,j+1));
+    sv = sv + 1;
 
     % Every d iterations, compute either exact error or an estimate of the error
     % using a previous approximation
-    if rem(j,d) == 0
+    if rem(j,d) == 0 || j == max_it
 
         SW = [ param.SU, SV(:,1:j) ];
 
@@ -114,7 +124,7 @@ for j = 1:max_it
 
         % Early convergence of srFOM
         if err(d_it) < tol
-            break;
+            break
         end
 
         if j < max_it
@@ -148,11 +158,13 @@ end
 
 out.SU = SW*X(:,1:keep);
 out.SAU = SAW*X(:,1:keep);
-
+out.k = keep;
 out.m = j;
 out.approx = approx;
 out.err = err(:,1:d_it);
 out.mv = mv;
+out.ip = ip;
+out.sv = sv;
 out.d_it = d_it;
 
 end

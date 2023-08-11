@@ -1,7 +1,7 @@
 % FUNCTION: out = FOM(A,b,param)
 % A function which computes the standard Arnoldi approximation to f(A)b
 
-% INPUT:  A   The matrix
+% INPUT:  A   The matrix or function handle
 %         b   The vector
 %        param An input struct with the following fields
 %
@@ -18,6 +18,12 @@
 %         out.err       Vector storing exact relative errors at each
 %                       iteration
 function out = fom(A,b,param)
+
+
+if isnumeric(A)
+    A = @(v) A*v;
+end
+
 max_it = param.max_it;
 n = param.n;
 fm = param.fm;
@@ -28,6 +34,7 @@ d = param.d;
 err_monitor = param.err_monitor;
 
 mv = 0;
+ip = 0;
 d_it = 1;
 
 prev_approx = b;
@@ -39,21 +46,23 @@ err = zeros(1,max_it);
 % Arnoldi for (A,b)
 V(:,1) = b/norm(b);
 for j = 1:max_it
-    w = A*V(:,j);
+    w = A(V(:,j));
     mv = mv + 1;
     for reo = 0:reorth
         for i = 1:j
             h = V(:,i)'*w;
+            ip = ip + 1;
             H(i,j) = H(i,j) + h;
             w = w - V(:,i)*h;
         end
     end
     H(j+1,j) = norm(w);
+    ip = ip + 1;
     V(:,j+1) = w/H(j+1,j);
 
     % Every d iterations, compute either exact error or an estimate of the error
     % using a previous approximation
-    if rem(j,d) == 0
+    if rem(j,d) == 0 || j == max_it
 
         approx = V(:,1:j)*fm(H(1:j,1:j), norm(b)*eye(j,1));
 
@@ -66,7 +75,7 @@ for j = 1:max_it
         end
 
         if err(d_it) < tol
-            break;
+            break
         end
 
         if j < max_it
@@ -80,6 +89,7 @@ out.m = j;
 out.approx = approx;
 out.err = err(:,1:d_it);
 out.mv = mv;
+out.ip = ip;
 out.d_it = d_it;
 
 end

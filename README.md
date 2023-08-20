@@ -18,9 +18,6 @@ test_inv.m: runs the inverse example.
 
 The initial run of files test_quad_v_closed.m, test_inv_sqrt1.m and test_inv_sqrt2.m requires the matrices, vectors and exact solutions to first be generated, which is done inside a conditional if "tilde" 0 statement. Once generated, the data may be saved and loaded in subsequent runs of the code by removing the "tilde" symbol.
 
-## data
-The data folder contains the matrices used in the inverse square root, and exponential examples.
-
 ## Important note on regenerating results from [1]
 The plots in the numerical experiments section of [1] can be regenerated using the test scripts. For examples which produce both
 

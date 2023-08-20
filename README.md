@@ -12,7 +12,7 @@ test_inv_sqrt1.m: runs the inverse square root example while computing A*U betwe
 
 test_inv_sqrt2.m: runs the inverse square root example while avoiding computation of A*U between problems.
 
-test_exp.m: runs the exponential example
+test_exp.m: runs the exponential example.
 
 test_inv.m: runs the inverse example.
 

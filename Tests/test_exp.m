@@ -3,20 +3,26 @@
 % This file evaluates a sequence of vectors of the form f(A)b where f is
 % the exponential function
 
-% The sequence of vectors is evaluated using the following 4 methods
-% fom: The standard Arnoldi approximation
-% rfom: The recycled fom presented in [Stefan and Liam work]
-% sfom: The sketched fom presented in [Stefan and Marcel]
-% srfom: The sketched and recycled fom presented in [Stefan and Liam work].
+% The sequence of vectors is evaluated using the following methods
 
-% The definiton of the test inputs is given below
+% fom: The standard fom approximation
+% rfom: The recycled fom presented in [1]
+% srfom: The sketched-recycled fom presented in [1].
+% sfom: The sketched fom presented in [2]
+
+% [1] L. Burke, S. Güttel. - Krylov Subspace Recycling With Randomized Sketching For Matrix Functions,
+% arXiv :2308.02290 [math.NA] (2023)
+
+% [2] S. Güttel, M. Schweitzer - Randomized sketching for Krylov approximations of
+% large-scale matrix functions, arXiv : arXiv:2208.11447 [math.NA] (2022)
 
 clear all
 close all
+addpath(genpath('../'));
 mydefaults
 rng('default')
 
-% The maximum number of iterations of the methods
+% The maximum number of iterations used by each method
 max_it = 400;
 
 % Boolean variable to descide if the Arnoldi vectors in fom
@@ -35,7 +41,7 @@ k = 50;
 
 % Arnoldi truncation parameter for the truncated Arnoldi method
 % used in sfom and srfom. Each Arnoldi vector is
-% orthogonalized against the previous t vectors (default t = 3)
+% orthogonalized against the previous t vectors
 t = 2;
 
 % A matrix whos columns span the recycling subspace (default empty)
@@ -47,11 +53,11 @@ num_problems = 30;
 % sketching parameter (number of rows of sketched matrix S)
 s = 400;
 
-% represents "strength" of matrix perturbation (default 0, special
+% "strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
 pert = 0;
 
-% Compute exact error or estimate error every d iterations
+% Monitor error every d iterations
 d = 10;
 
 % exponential time step
@@ -60,8 +66,6 @@ tt = 0.01;
 % err_monitor set to "estimate" or "exact" to determine if the error should
 % be estimated or computed exactly.
 err_monitor = "estimate";
-
-addpath(genpath('../'));
 
 load("data/cdBeispiel.mat"); A = sparse(A);
 n = size(A,1);
@@ -128,11 +132,12 @@ srfom_stabsRR_err = zeros(1,num_problems);
 
 % Loop through all systems
 fprintf("\n #### Evaluating a sequence of %d f(A)b applications ####   \n", num_problems);
+pause(1);
+
 for i = 1:num_problems
 
     fprintf("\n #### Problem %d #### \n", i);
 
-    %b = randn(n,1);
     exact = ExA*b;
 
     fom_param.exact = exact;
@@ -148,7 +153,7 @@ for i = 1:num_problems
     fom_m(i) = fom_out.m;
     fom_mv(i) = fom_out.mv;
     fom_err(i) = norm(fom_out.approx - exact)/norm(b);
-    
+
     % Compute the recycled FOM approximation, assign the output recycling
     % subspace to be the input recycling subspace for the next problem.
     fprintf("\n Computing rfom approximation .... \n");
@@ -171,7 +176,7 @@ for i = 1:num_problems
     % problem.
 
     % First call the method which uses sketched Rayleigh-Ritz
-    fprintf("\n Computing srfom (with sRR) approximation .... \n");
+    fprintf("\n Computing srfom approximation .... \n");
     srfom_sRR_out = sketched_recycled_fom(A,b,srfom_sRR_param);
     srfom_sRR_param.U = srfom_sRR_out.U;
     srfom_sRR_param.SU = srfom_sRR_out.SU;
@@ -181,7 +186,7 @@ for i = 1:num_problems
     srfom_sRR_err(i) = norm(srfom_sRR_out.approx - exact)/norm(b);
 
     % Then, call the method which uses the stabilized sketched Rayleigh-Ritz
-    fprintf("\n Computing srfom (with stabilized sRR) approximation .... \n");
+    fprintf("\n Computing stabilized srfom approximation .... \n");
     srfom_stabsRR_out = sketched_recycled_fom_stabilized(A,b,srfom_stabsRR_param);
     srfom_stabsRR_param.U = srfom_stabsRR_out.U;
     srfom_stabsRR_param.SU = srfom_stabsRR_out.SU;
@@ -190,14 +195,11 @@ for i = 1:num_problems
     srfom_stabsRR_mv(i) = srfom_stabsRR_out.mv;
     srfom_stabsRR_err(i) = norm(srfom_stabsRR_out.approx - exact)/norm(b);
 
-    % Slowly change the matrix for next problem.
-    %A = A + pert*sprand(A);
-
     % Take new b to be FOM approximation.
     b = fom_approx;
-    
-end
+    pause(1);
 
+end
 
 %% Plot final error of each problem in the sequence
 figure
@@ -214,11 +216,7 @@ xlabel('problem')
 ylabel('relative error')
 title('exponential, actual error')
 ylim([1e-16,1e-8])
-mypdf('fig/exp_error_curves',.66*1.2,1.4/1.2)
-hold on;
-shg
 
-%%
 %Plot the Arnoldi cycle length needed for each problem to converge.
 figure
 plot(fom_m,'-');
@@ -233,7 +231,3 @@ xlabel('problem')
 ylabel('m');
 title('exponential, adaptive m via estimator')
 ylim([10,130])
-mypdf('fig/exp_adaptive',.66*1.2,1.4/1.2)
-shg
-
-

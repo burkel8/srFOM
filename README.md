@@ -7,9 +7,13 @@ All test scripts used to generate the plots in [1] can be found in the Tests fol
 
 test_quad_v_closed: compares the closed form formulation of recycled FOM against the quadrature based implementation 
 presented in [2].
+
 test_inv_sqrt1.m: runs the inverse square root example while computing A*U between problems.
+
 test_inv_sqrt2.m: runs the inverse square root example while avoiding computation of A*U between problems.
+
 test_exp.m: runs the exponential example
+
 test_inv.m: runs the inverse example.
 
 ## References

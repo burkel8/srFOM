@@ -1,11 +1,11 @@
-%% test_inv_sqrt_fixed_reltol.m
+% test_inv_sqrt_fixed_reltol.m
 
 % This file evaluates a sequence of vectors of the form f(A)b where f is
-% the inverse dquare root function. A*U is computed explicitly with the actual A
-% for each of the problems. The number of Arnoldi iterations (with fixed k)
-% required to reach a specified error tolerance are plotted.
+% the inverse square root function. The number of Arnoldi iterations (with fixed k)
+% required to reach a specified error tolerance is plotted.
 
-% The sequence of vectors is evaluated using the following methods
+% The sequence of vectors is evaluated using the following methods:
+
 % fom: The standard fom approximation
 % rfom: The recycled fom presented in [1]
 % srfom: The sketched and recycled fom presented in [1].
@@ -21,10 +21,10 @@ clear all, clc, close all
 addpath(genpath('../'));
 mydefaults
 
-% The maximum number of iterations used by each method
+% The maximum number of iterations allowed for each method.
 max_it = 400;
 
-% Boolean variable to descide if the Arnoldi vectors in fom
+% Boolean variable to descide if the Arnoldi vectors in fom and
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
 % (default is 0)
 reorth = 0;
@@ -49,10 +49,10 @@ U = [];
 % The number of f(A)b vectors in the sequence to evaluate
 num_problems = 30;
 
-% sketching parameter (number of rows of sketched matrix S)
+% Sketching parameter (number of rows of sketched matrix S)
 s = 400;
 
-% "strength" of matrix perturbation (default 0, special
+% "Strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
 pert = 0;
 
@@ -63,17 +63,19 @@ d = 10;
 % be estimated or computed exactly.
 err_monitor = "exact";
 
-% runs parameter determines the number of times we wish to run a given
+% runs parameter determines the number of times to run a given
 % experiment. Only used for more robust timings. Default is set to 1,
 % but if interested in timings, we recommend setting to 10 or higher.
 runs = 1;
 
+% If data is precomputed, load it
 if isfile("qcdsqrt-8.mat") == 1
 
     fprintf("\n Loading Data\n");
     load qcdsqrt-8.mat
 
-else
+else % Or else, generate it
+
     fprintf("\nGenerating a sequence of %d matrices, vectors and exact solutions \n", num_problems);
     fprintf("\n This may take a while! \n");
     load("../data/conf6_0-4x4-30.mat");
@@ -91,6 +93,7 @@ else
     end
     save qcdsqrt-8 AA B E
     fprintf("\n Finished generating data!\n \n");
+
 end
 
 n = size(B,1);
@@ -99,47 +102,46 @@ param.max_it = max_it;
 param.reorth = reorth;
 param.tol = tol;
 param.svd_tol = svd_tol;
-param.k = k; % recycling subspace
+param.k = k; 
 param.t = t;
 param.U = U;
-
 param.pert = pert;
-param.d = d; % compute exact error or estimate error every d iterations
+param.d = d; 
 param.err_monitor = err_monitor;
 param.s = s;
 param.hS = srft(n,s);
 param.fm = @(X,v) sqrtm(full(X))\v;
 
 % Preallocate vectors
-% vectors to store errors.
+% Vectors to store errors.
 fom_err = zeros(1,num_problems);
 sfom_err = zeros(1,num_problems);
 rfom_err = zeros(1,num_problems);
 srfom_err = zeros(1,num_problems);
 srfomstab_err = zeros(1,num_problems);
 
-% vectors to store Arnoldi cycle lengths.
+% Vectors to store Arnoldi cycle lengths.
 fom_m  = zeros(1,num_problems);
 sfom_m =  zeros(1,num_problems);
 rfom_m = zeros(1,num_problems);
 srfom_m = zeros(1,num_problems);
 srfomstab_m = zeros(1,num_problems);
 
-% vectors to store matrix vector products.
+% Vectors to store matrix-vector products.
 fom_mv =  zeros(1,num_problems);
 sfom_mv =  zeros(1,num_problems);
 rfom_mv = zeros(1,num_problems);
 srfom_mv = zeros(1,num_problems);
 srfomstab_mv = zeros(1,num_problems);
 
-% vectors to store inner products.
+% Vectors to store inner products.
 fom_ip =  zeros(1,num_problems);
 sfom_ip = zeros(1,num_problems);
 rfom_ip =  zeros(1,num_problems);
 srfom_ip =  zeros(1,num_problems);
 srfomstab_ip =  zeros(1,num_problems);
 
-% vectors to store number of sketches.
+% Vectors to store number of vector sketches.
 sfom_sv =   zeros(1,num_problems);
 srfom_sv = zeros(1,num_problems);
 srfomstab_sv =  zeros(1,num_problems);

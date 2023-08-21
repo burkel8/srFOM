@@ -1,9 +1,9 @@
-%% test_exp.m
+% test_exp.m
 
 % This file evaluates a sequence of vectors of the form f(A)b where f is
 % the exponential function
 
-% The sequence of vectors is evaluated using the following methods
+% The sequence of vectors is evaluated using the following methods:
 
 % fom: The standard fom approximation
 % rfom: The recycled fom presented in [1]
@@ -22,10 +22,10 @@ addpath(genpath('../'));
 mydefaults
 rng('default')
 
-% The maximum number of iterations used by each method
+% The maximum number of iterations allowed for each method.
 max_it = 400;
 
-% Boolean variable to descide if the Arnoldi vectors in fom
+% Boolean variable to descide if the Arnoldi vectors in fom and
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
 % (default is 0)
 reorth = 0;
@@ -44,7 +44,7 @@ k = 50;
 % orthogonalized against the previous t vectors
 t = 2;
 
-% A matrix whos columns span the recycling subspace (default empty)
+% Matrix whos columns span the recycling subspace (default empty)
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
@@ -67,6 +67,7 @@ tt = 0.01;
 % be estimated or computed exactly.
 err_monitor = "estimate";
 
+% Generate data
 load("data/cdBeispiel.mat"); A = sparse(A);
 n = size(A,1);
 rng(1);
@@ -97,7 +98,7 @@ param.d = d;
 param.err_monitor = err_monitor;
 param.pert = pert;
 
-% input structs for fom, rfom, srfom
+% input structs for fom, rfom, sfom, srfom and srfom (stab)
 fom_param = param;
 rfom_param = param;
 sfom_param = param;
@@ -174,8 +175,6 @@ for i = 1:num_problems
     % Compute the sketched and recycled FOM approximation, assign the output
     % recycling subspace to be the input recycling subspace for the next
     % problem.
-
-    % First call the method which uses sketched Rayleigh-Ritz
     fprintf("\n Computing srfom approximation .... \n");
     srfom_sRR_out = sketched_recycled_fom(A,b,srfom_sRR_param);
     srfom_sRR_param.U = srfom_sRR_out.U;
@@ -185,7 +184,7 @@ for i = 1:num_problems
     srfom_sRR_mv(i) = srfom_sRR_out.mv;
     srfom_sRR_err(i) = norm(srfom_sRR_out.approx - exact)/norm(b);
 
-    % Then, call the method which uses the stabilized sketched Rayleigh-Ritz
+    % Then, call the stabilized sketched-recycled fom
     fprintf("\n Computing stabilized srfom approximation .... \n");
     srfom_stabsRR_out = sketched_recycled_fom_stabilized(A,b,srfom_stabsRR_param);
     srfom_stabsRR_param.U = srfom_stabsRR_out.U;
@@ -201,7 +200,7 @@ for i = 1:num_problems
 
 end
 
-%% Plot final error of each problem in the sequence
+% Plot final error of each problem in the sequence
 figure
 semilogy(fom_err,'-');
 grid on;
@@ -217,7 +216,7 @@ ylabel('relative error')
 title('exponential, actual error')
 ylim([1e-16,1e-8])
 
-%Plot the Arnoldi cycle length needed for each problem to converge.
+% Plot the Arnoldi cycle length needed for each problem to converge.
 figure
 plot(fom_m,'-');
 grid on;

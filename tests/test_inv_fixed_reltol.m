@@ -1,10 +1,10 @@
-%% test_inv_fixed_reltol.m
+% test_inv_fixed_reltol.m
 
 % This file evaluates a sequence of vectors of the form f(A)b where f is
 % the inverse function, and plots the Arnoldi cycle length required for
 % each problem to reach convergence.
 
-% The sequence of vectors is evaluated using the following methods
+% The sequence of vectors is evaluated using the following methods:
 
 % fom: The standard fom approximation
 % rfom: The recycled fom presented in [1]
@@ -24,10 +24,10 @@ addpath(genpath('../'));
 mydefaults
 rng('default')
 
-% The maximum number of iterations of the methods
+% The maximum number of iterations allowed for each method.
 max_it = 800;
 
-% Boolean variable to descide if the Arnoldi vectors in fom
+% Boolean variable to descide if the Arnoldi vectors in fom and
 % rfom should be re-orthogonalized (set to 1), or not (set to 0)
 % (default is 0)
 reorth = 0;
@@ -46,7 +46,7 @@ k = 30;
 % orthogonalized against the previous t vectors.
 t = 2;
 
-% A matrix whos columns span the recycling subspace (default empty)
+% Matrix whos columns span the recycling subspace (default empty)
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
@@ -55,11 +55,11 @@ num_problems = 30;
 % sketching parameter (number of rows of sketched matrix S)
 s = 900;
 
-% represents "strength" of matrix perturbation (default 0, special
+% "strength" of matrix perturbation (default 0, special
 % case when matrix remains fixed throughout the sequence )
 pert = 0;
 
-% Compute exact error or estimate error ever d iterations
+% Monitor error every d iterations
 d = 10;
 
 % runs parameter determines the number of times we wish to run a given
@@ -71,7 +71,7 @@ runs = 1;
 % be estimated or computed exactly.
 err_monitor = "exact";
 
-% Generate Neumann Matrix, shift to make it non-singular
+% Generate Neumann matrix, shift to make it non-singular
 n = 10609;
 A = gallery('neumann', n) + 0.001*speye(n);
 
@@ -100,15 +100,6 @@ param.err_monitor = err_monitor;
 param.pert = pert;
 param.svd_tol = svd_tol;
 
-% input structs for fom, rfom, srfom
-fom_param = param;
-rfom_param = param;
-sfom_param = param;
-srfom_sRR_param = param;
-srfom_stabsRR_param = param;
-
-srfomstab_param.svd_tol = svd_tol;
-
 % Vectors of length num_problems which will store the total Arnoldi cycle
 % length needed for each problem in the sequence to converge.
 fom_m = zeros(1,num_problems);
@@ -126,21 +117,34 @@ srfom_mv = zeros(1,num_problems);
 srfomstab_mv = zeros(1,num_problems);
 
 % Vectors of length num_problems which will store the final exact error
-% (only meaningful if the max number of iterations were performed)
 fom_err = zeros(1,num_problems);
 rfom_err = zeros(1,num_problems);
 sfom_err = zeros(1,num_problems);
 srfom_err = zeros(1,num_problems);
 srfomstab_err = zeros(1,num_problems);
 
+% Vectors of length num_problems which will store the total number of inner
+% products performed by each method.
+fom_ip = zeros(1,num_problems);
+rfom_ip = zeros(1,num_problems);
+sfom_ip = zeros(1,num_problems);
+srfom_ip = zeros(1,num_problems);
+srfomstab_ip = zeros(1,num_problems);
+
+% Vectors of length num_problems which will store the total number of 
+% vector sketches performed by the sketching algorithms.
+sfom_sv = zeros(1,num_problems);
+srfom_sv = zeros(1,num_problems);
+srfomstab_sv = zeros(1,num_problems);
+
+% Generate data
 rng('default')
 B = randn(n,num_problems);
 E = A\B; % Exact solutions
 
-% Loop through all systems
 fprintf("\n #### Evaluating a sequence of %d f(A)b applications ####   \n", num_problems);
 
-% Test FOM
+% FOM
 fprintf("\n ### FOM ### \n");
 tic
 for run = 1:runs
@@ -157,7 +161,7 @@ end
 toc/runs
 fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(fom_mv),sum(fom_ip))
 
-% Test sketched FOM
+% Sketched FOM
 fprintf("\n ### sFOM ### \n");
 tic
 for run = 1:runs
@@ -175,7 +179,7 @@ end
 toc/runs
 fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(sfom_mv),sum(sfom_ip),sum(sfom_sv))
 
-% recycled FOM
+% Recycled FOM
 fprintf("\n ### rFOM ### \n");
 tic
 for run = 1:runs
@@ -194,7 +198,7 @@ end
 toc/runs
 fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(rfom_mv),sum(rfom_ip))
 
-% sketched-recycled FOM
+% Sketched-recycled FOM
 fprintf("\n ### srFOM ### \n");
 tic
 for run = 1:runs
@@ -214,7 +218,7 @@ end
 toc/runs
 fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfom_mv),sum(srfom_ip),sum(srfom_sv))
 
-% stabilized sketched-recycled FOM
+% Stabilized sketched-recycled FOM
 fprintf("\n ### srFOM (stab) ### \n");
 tic
 for run = 1:runs

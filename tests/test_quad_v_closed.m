@@ -4,16 +4,16 @@
 % f(A)b and compares it to the original quadrature based implementation
 % proposed in [2].
 
-% The sequence of vectors is evaluated using the following methods
+% The sequence of vectors is evaluated using the following methods:
 % fom: The standard fom approximation
 % rfom: The recycled fom presented in [1]
-% srfom: The sketched and recycled fom presented in [1].
+% srfom: The sketched-recycled fom presented in [1].
 % rFOM (quad): The quadrature based recycling algorithm from [2]
 
 % [1] L. Burke, S. Güttel. - Krylov Subspace Recycling With Randomized Sketching For Matrix Functions,
 % arXiv :2308.02290 [math.NA] (2023)
 
-% [2] [2] L. Burke, A. Frommer, G. Ramirez, K. M Soodhalter -
+% [2] L. Burke, A. Frommer, G. Ramirez-Hidalgo, K. M. Soodhalter -
 % Krylov Subspace Recycling For Matrix Functions, arXiv :2209.14163 [math.NA] (2022)
 
 close all
@@ -21,10 +21,10 @@ addpath(genpath('../'));
 mydefaults
 rng('default')
 
-% The maximum number of iterations of the methods
+% The maximum number of iterations allowed for each method.
 max_it = 100;
 
-% Boolean variable to descide if the Arnoldi vectors in fom rfom should
+% Boolean variable to descide if the Arnoldi vectors in fom and rfom should
 % be re-orthogonalized (set to 1), or not (set to 0) (default is 0)
 reorth = 0;
 
@@ -42,7 +42,7 @@ k = 30;
 % t vectors.
 t = 2;
 
-% A matrix whos columns span the recycling subspace (default empty)
+% Matrix whos columns span the recycling subspace (default empty)
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
@@ -63,19 +63,20 @@ d = 1;
 err_monitor = "exact";
 
 % Vectors of length num_problems which will store the final exact error
-% (only meaningful if the max number of iterations were performed)
 fom_err = zeros(1,num_problems);
 rfom_closed_err = zeros(1,num_problems);
 rfom_quad1_err = zeros(1,num_problems);
 rfom_quad2_err = zeros(1,num_problems);
 srfom_err = zeros(1,num_problems);
 
+% If the data already exists, load it
 if isfile("qcdsqrt-8.mat") == 1
 
     fprintf("\n Loading Data\n");
     load qcdsqrt-8.mat
 
-else
+else % If not, generate it
+
     fprintf("\nGenerating a sequence of %d matrices, vectors and exact solutions \n", num_problems);
     fprintf("\n This may take a while! \n");
     load("../data/conf6_0-4x4-30.mat");
@@ -93,6 +94,7 @@ else
     end
     save qcdsqrt-8 AA B E
     fprintf("\n Finished generating data!\n \n");
+
 end
 
 n = size(B,1);
@@ -122,14 +124,14 @@ param.pert = pert;
 param.n = n;
 param.hS = hS;
 
-% input structs for fom, rfom, srfom
+% Input structs for fom, rfom, srfom
 fom_param = param;
 rfom_quad1_param = param;
 rfom_quad2_param = param;
 rfom_closed_param = param;
 srfom_param = param;
 
-% Set param properties unique to differnt methods
+% Set param properties unique to different methods
 rfom_quad1_param.num_quad_points = 50;
 rfom_quad2_param.num_quad_points = 100;
 srfom_param.svd_tol = svd_tol;
@@ -177,12 +179,10 @@ for i = 1:num_problems
     rfom_closed_param.U = rfom_closed_out.U;
     rfom_closed_err(i) = rfom_closed_out.err(rfom_closed_out.m);
 
-    % Compute the sketched and recycled FOM approximation, assign the output
+    % Compute the sketched-recycled FOM approximation, assign the output
     % recycling subspace to be the input recycling subspace for the next
     % problem.
-
-    % First call the method which uses sketched Rayleigh-Ritz
-    fprintf("\n Computing srfom (with sRR) approximation .... \n");
+    fprintf("\n Computing srfom approximation .... \n");
     srfom_out = sketched_recycled_fom_stabilized(A,b,srfom_param);
     srfom_param.U = srfom_out.U;
     srfom_param.SU = srfom_out.SU;
@@ -190,6 +190,7 @@ for i = 1:num_problems
     srfom_err(i) = srfom_out.err(srfom_out.m);
 end
 
+% Plot error
 figure
 semilogy(fom_err,'-');
 grid on;

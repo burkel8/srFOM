@@ -1,6 +1,7 @@
 function S = srft(n, s)
+
 	% S = srft(n, s)
-	%* Generates a Subsampled Random Fourier Transform, to be used as a random subspace embedding
+	%* Generates a Subsampled Random Cosine Transform, to be used as a random subspace embedding
 	% SS = sqrt(n/s) * D * F * E, where:
 	%	D = random projection on s coordinates
 	%	F = discrete cosine transform

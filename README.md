@@ -17,7 +17,11 @@ test_exp.m: runs the exponential example.
 test_inv.m: runs the inverse example.
 
 ## References
-[1] L. Burke, S. Güttel. - Krylov Subspace Recycling With Randomized Sketching For Matrix Functions, arXiv :2308.02290 [math.NA] (2023)
+[1] L. Burke, S. Güttel. - Krylov Subspace Recycling With Randomized Sketching For Matrix Functions, arXiv :2308.02290 [math.NA] (2023) 
+
+https://arxiv.org/abs/2308.02290
 
 [2]  L. Burke, A. Frommer, G. Ramirez-Hidalgo, K. M. Soodhalter - Krylov Subspace Recycling For Matrix Functions,
 arXiv :2209.14163 [math.NA] (2022)
+
+https://arxiv.org/abs/2209.14163

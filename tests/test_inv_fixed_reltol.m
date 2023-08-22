@@ -252,5 +252,5 @@ legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stab)','Orientation','horizontal');
 xlabel('problem')
 ylabel('m');
 ylim([50,500])
-mypdf('fig/inv_adaptive_m',.66,1.5)
+mypdf('fig/inv_fixed_reltol',.66,1.5)
 shg

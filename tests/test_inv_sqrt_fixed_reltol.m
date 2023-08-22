@@ -47,7 +47,7 @@ t = 2;
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
-num_problems = 30;
+num_problems = 20;
 
 % Sketching parameter (number of rows of sketched matrix S)
 s = 400;
@@ -259,6 +259,6 @@ xlabel('problem')
 ylabel('m');
 title("inverse square root, fixed reltol");
 ylim([80,300])
-mypdf('fig/inv_sqrt_adaptive',.66,1.5)
+mypdf('fig/inv_sqrt_fixed_reltol',.66,1.5)
 shg
 

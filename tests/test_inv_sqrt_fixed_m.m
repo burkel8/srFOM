@@ -47,7 +47,7 @@ t = 2;
 U = [];
 
 % The number of f(A)b vectors in the sequence to evaluate
-num_problems = 30;
+num_problems = 20;
 
 % Sketching parameter (number of rows of sketched matrix S)
 s = 400;
@@ -260,7 +260,7 @@ legend('FOM','sFOM','rFOM','srFOM','srFOM (stab)');
 xlabel('problem')
 ylabel('relative error')
 title("inverse square root, fixed m")
-mypdf('fig/inv_sqrt_exact_error_curves',.66,1.5)
+mypdf('fig/inv_sqrt_fixed_m',.66,1.5)
 hold off;
 shg
 

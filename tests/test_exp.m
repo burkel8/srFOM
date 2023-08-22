@@ -215,6 +215,9 @@ xlabel('problem')
 ylabel('relative error')
 title('exponential, actual error')
 ylim([1e-16,1e-8])
+mypdf('fig/exp_error_curves',.66*1.2,1.4/1.2)
+hold on;
+shg
 
 % Plot the Arnoldi cycle length needed for each problem to converge.
 figure
@@ -230,3 +233,5 @@ xlabel('problem')
 ylabel('m');
 title('exponential, adaptive m via estimator')
 ylim([10,130])
+mypdf('fig/exp_adaptive',.66*1.2,1.4/1.2)
+shg

@@ -202,6 +202,8 @@ semilogy(srfom_err,'+--');
 legend('FOM','rFOM (quad) 50','rFOM (quad) 100','rFOM (Algorithm 2.1)','srFOM (Algorithm 3.1)');
 xlabel('problem')
 ylabel('relative error')
+mypdf('fig/inv_sqrt_compare',.66,1.5)
+shg
 
 
 

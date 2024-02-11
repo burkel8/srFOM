@@ -62,12 +62,10 @@ if isempty(U)
 else
     % In the special case when the matrix does not change, we can re-use SU
     % from previous problem,
-    if param.pert == 0
-        %fprintf("\npert = 0\n");
+    if param.mat_change == 0
         SW = param.SU;
         SAW = param.SAU;
     else
-        %fprintf("\npert not 0\n");
         SW = param.SU;
         SAW = hS(A(U));
         mv = mv + size(U,2);

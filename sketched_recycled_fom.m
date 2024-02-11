@@ -59,7 +59,7 @@ else
 
     % In the special case when the matrix does not change, we can re-use SU
     % from previous problem,
-    if param.pert == 0
+    if param.mat_change == 0
         SW = param.SU;
         SAW = param.SAU;
         mv = mv + 0;

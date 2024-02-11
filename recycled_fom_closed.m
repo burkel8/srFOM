@@ -40,7 +40,7 @@ ip = 0;
 if isempty(U)
     AU = [];
 else
-    if param.pert == 0
+    if param.mat_change == 0
         AU = param.AU;
     else
         AU = A(U); 

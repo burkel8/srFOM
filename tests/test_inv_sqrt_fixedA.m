@@ -51,10 +51,6 @@ num_problems = 30;
 % Sketching parameter (number of rows of sketched matrix S)
 s = 400;
 
-% "Strength" of matrix perturbation (default 0, special
-% case when matrix remains fixed throughout the sequence )
-pert = 0;
-
 % Monitor error every d iterations
 d = 10;
 
@@ -67,11 +63,13 @@ err_monitor = "estimate";
 % but if interested in timings, we recommend setting to 10 or higher.
 runs = 1;
 
-% If data is precomputed, load it
-if isfile("qcdsqrt-8.mat") == 1
+% Do the matrices change ? (set to 0 for no, and 1 for yes)
+mat_change = 1;
 
+% If data is precomputed, load it
+if isfile("qcdsqrt-8_fixedA.mat") == 1
     fprintf("\n Loading Data\n");
-    load qcdsqrt-8.mat
+    load qcdsqrt-8_fixedA.mat
 
 else % Or else, generate it
 
@@ -83,14 +81,14 @@ else % Or else, generate it
     A = A + 6.0777*speye(n);
     rng('default')
     B = randn(n,num_problems);
-    pert = 1e-8;
+    
     for j = 1:num_problems
         AA{j} = A;
         E{j} = sqrtm(full(A))\B;
         A = A + pert*sprandn(A);
         fprintf("\n Problem %d data generated!", j);
     end
-    save qcdsqrt-8 AA B E
+    save qcdsqrt-8_fixedA AA B E
     fprintf("\n Finished generating data!\n \n");
 
 end
@@ -104,7 +102,7 @@ param.svd_tol = svd_tol;
 param.k = k; 
 param.t = t;
 param.U = U;
-param.pert = pert;
+param.mat_change = mat_change;
 param.d = d; 
 param.err_monitor = err_monitor;
 param.s = s;
@@ -163,8 +161,8 @@ for run = 1:runs
         fom_ip(i) = out.ip;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(fom_mv),sum(fom_ip))
+
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - time %1.2f \n', sum(fom_m),sum(fom_mv),sum(fom_ip),toc/runs )
 
 % Test sketched FOM
 fprintf("\n ### sFOM ### \n");
@@ -182,8 +180,8 @@ for run = 1:runs
         sfom_sv(i) = out.sv;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(sfom_mv),sum(sfom_ip),sum(sfom_sv))
+
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n',sum(sfom_m),sum(sfom_mv),sum(sfom_ip),sum(sfom_sv),toc/runs)
 
 % Test recycled FOM
 fprintf("\n ### rFOM ### \n");
@@ -202,8 +200,8 @@ for run = 1:runs
         param.U = out.U; param.AU = out.AU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(rfom_mv),sum(rfom_ip))
+
+fprintf('Total iterations: %d - matvecs: %5d - dotprods: %5d - time: %1.2f\n',sum(rfom_m),sum(rfom_mv),sum(rfom_ip),toc/runs );
 
 % Test sketched-recycled FOM
 fprintf("\n ### srFOM ### \n");
@@ -223,8 +221,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfom_mv),sum(srfom_ip),sum(srfom_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n', sum(srfom_m), sum(srfom_mv),sum(srfom_ip),sum(srfom_sv),toc/runs)
 
 % Test stabilized version of sketched-recycled FOM
 fprintf("\n ### srFOM (stab) ### \n");
@@ -244,8 +242,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f\n', sum(srfomstab_m), sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv),toc/runs);
 
 % Plot final error of each problem in the sequence
 figure
@@ -257,7 +255,7 @@ semilogy(rfom_err,'V-');
 semilogy(srfom_err,'+--');
 semilogy(srfomstab_err,'s--');
 legend('FOM','sFOM','rFOM','srFOM','srFOM (stabilized)');
-xlabel('problem')
+xlabel('problem index $i$', 'interpreter','latex');
 ylabel('relative error')
 title("inverse square root, fixed reltol")
 ylim([1e-12,1e-8])
@@ -272,7 +270,7 @@ plot(rfom_m,'V-');
 semilogy(srfom_m,'+--');
 semilogy(srfomstab_m,'s--');
 legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stabilized)');
-xlabel('problem')
+xlabel('problem index $i$', 'interpreter','latex');
 ylabel('m');
 ylim([80,150])
 title("inverse square root, fixed reltol")

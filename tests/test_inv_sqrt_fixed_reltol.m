@@ -17,7 +17,7 @@
 % [2] S. Güttel, M. Schweitzer - Randomized sketching for Krylov approximations of
 % large-scale matrix functions, arXiv : arXiv:2208.11447 [math.NA] (2022)
 
-clear all, clc, close all
+%clear all, clc, close all
 addpath(genpath('../'));
 mydefaults
 
@@ -52,10 +52,6 @@ num_problems = 20;
 % Sketching parameter (number of rows of sketched matrix S)
 s = 400;
 
-% "Strength" of matrix perturbation (default 0, special
-% case when matrix remains fixed throughout the sequence )
-pert = 0;
-
 % Monitor error every d iterations
 d = 10;
 
@@ -67,6 +63,9 @@ err_monitor = "exact";
 % experiment. Only used for more robust timings. Default is set to 1,
 % but if interested in timings, we recommend setting to 10 or higher.
 runs = 1;
+
+% Do the matrices change ? (set to 0 for no, and 1 for yes)
+mat_change = 1;
 
 % If data is precomputed, load it
 if isfile("qcdsqrt-8.mat") == 1
@@ -84,10 +83,12 @@ else % Or else, generate it
     A = A + 6.0777*speye(n);
     rng('default')
     B = randn(n,30);
-    pert = 1e-8;
+   
     for j = 1:num_problems
         AA{j} = A;
         E{j} = sqrtm(full(A))\B;
+
+        pert = 1e-08;
         A = A + pert*sprandn(A);
         fprintf("\n Problem %d data generated!", j);
     end
@@ -105,7 +106,7 @@ param.svd_tol = svd_tol;
 param.k = k; 
 param.t = t;
 param.U = U;
-param.pert = pert;
+param.mat_change = mat_change;
 param.d = d; 
 param.err_monitor = err_monitor;
 param.s = s;
@@ -146,6 +147,15 @@ sfom_sv =   zeros(1,num_problems);
 srfom_sv = zeros(1,num_problems);
 srfomstab_sv =  zeros(1,num_problems);
 
+
+% First, lets find and store the condition numbers of the matrices
+
+cond_nums = zeros(1,num_problems);
+for i=1:num_problems
+    cond_nums(i) = cond(AA{i});
+end
+
+
 % Test FOM
 fprintf("\n ### FOM ### \n");
 tic
@@ -161,8 +171,8 @@ for run = 1:runs
         fom_ip(i) = out.ip;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(fom_mv),sum(fom_ip))
+
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - time %1.2f \n', sum(fom_m),sum(fom_mv),sum(fom_ip),toc/runs )
 
 % Test sketched FOM
 fprintf("\n ### sFOM ### \n");
@@ -180,8 +190,8 @@ for run = 1:runs
         sfom_sv(i) = out.sv;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(sfom_mv),sum(sfom_ip),sum(sfom_sv))
+
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n',sum(sfom_m),sum(sfom_mv),sum(sfom_ip),sum(sfom_sv),toc/runs)
 
 % Test recycled FOM
 fprintf("\n ### rFOM ### \n");
@@ -200,8 +210,8 @@ for run = 1:runs
         param.U = out.U; param.AU = out.AU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(rfom_mv),sum(rfom_ip))
+
+fprintf('Total iterations: %d - matvecs: %5d - dotprods: %5d - time: %1.2f\n',sum(rfom_m),sum(rfom_mv),sum(rfom_ip),toc/runs );
 
 % Test sketched-recycled FOM
 fprintf("\n ### srFOM ### \n");
@@ -221,8 +231,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfom_mv),sum(srfom_ip),sum(srfom_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n', sum(srfom_m), sum(srfom_mv),sum(srfom_ip),sum(srfom_sv),toc/runs)
 
 % Test stabilized sketched-recycled FOM
 fprintf("\n ### srFOM (stab) ### \n");
@@ -242,8 +252,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f\n', sum(srfomstab_m), sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv),toc/runs);
 
 % Plot the Arnoldi cycle length needed for each problem to converge.
 figure
@@ -255,7 +265,7 @@ plot(rfom_m,'V-');
 semilogy(srfom_m,'+--');
 semilogy(srfomstab_m,'s--');
 legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stab)');
-xlabel('problem')
+xlabel('problem index $i$', 'interpreter','latex');
 ylabel('m');
 title("inverse square root, fixed reltol");
 ylim([80,300])

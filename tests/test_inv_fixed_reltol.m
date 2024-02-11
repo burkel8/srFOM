@@ -55,9 +55,8 @@ num_problems = 30;
 % sketching parameter (number of rows of sketched matrix S)
 s = 900;
 
-% "strength" of matrix perturbation (default 0, special
-% case when matrix remains fixed throughout the sequence )
-pert = 0;
+% Do the matrices change ? (set to 0 for no, and 1 for yes)
+mat_change = 1;
 
 % Monitor error every d iterations
 d = 10;
@@ -97,7 +96,7 @@ param.hS = hS;
 param.s = s;
 param.d = d;
 param.err_monitor = err_monitor;
-param.pert = pert;
+param.mat_change = mat_change;
 param.svd_tol = svd_tol;
 
 % Vectors of length num_problems which will store the total Arnoldi cycle
@@ -158,8 +157,7 @@ for run = 1:runs
         fom_ip(i) = out.ip;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(fom_mv),sum(fom_ip))
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - time %1.2f \n', sum(fom_m),sum(fom_mv),sum(fom_ip),toc/runs )
 
 % Sketched FOM
 fprintf("\n ### sFOM ### \n");
@@ -176,8 +174,8 @@ for run = 1:runs
         sfom_sv(i) = out.sv;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(sfom_mv),sum(sfom_ip),sum(sfom_sv))
+
+fprintf('Total iterations: %5d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n',sum(sfom_m),sum(sfom_mv),sum(sfom_ip),sum(sfom_sv),toc/runs)
 
 % Recycled FOM
 fprintf("\n ### rFOM ### \n");
@@ -195,8 +193,8 @@ for run = 1:runs
         param.U = out.U; param.AU = out.AU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d\n',sum(rfom_mv),sum(rfom_ip))
+
+fprintf('Total iterations: %d - matvecs: %5d - dotprods: %5d - time: %1.2f\n',sum(rfom_m),sum(rfom_mv),sum(rfom_ip),toc/runs );
 
 % Sketched-recycled FOM
 fprintf("\n ### srFOM ### \n");
@@ -215,8 +213,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfom_mv),sum(srfom_ip),sum(srfom_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f \n', sum(srfom_m), sum(srfom_mv),sum(srfom_ip),sum(srfom_sv),toc/runs)
 
 % Stabilized sketched-recycled FOM
 fprintf("\n ### srFOM (stab) ### \n");
@@ -235,8 +233,8 @@ for run = 1:runs
         param.U = out.U; param.SU = out.SU; param.SAU = out.SAU;
     end
 end
-toc/runs
-fprintf('Total matvecs: %5d - dotprods: %5d - sketches: %5d\n',sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv))
+
+fprintf('Total iterations %d - matvecs: %5d - dotprods: %5d - sketches: %5d - time: %1.2f\n', sum(srfomstab_m), sum(srfomstab_mv),sum(srfomstab_ip),sum(srfomstab_sv),toc/runs);
 
 % Plot the Arnoldi cycle length needed for each problem to converge.
 figure
@@ -249,7 +247,7 @@ semilogy(srfom_m,'+--');
 semilogy(srfomstab_m,'s--');
 title("inverse function, fixed reltol");
 legend('FOM','sFOM', 'rFOM','srFOM','srFOM (stab)','Orientation','horizontal');
-xlabel('problem')
+xlabel('problem $i$', 'interpreter','latex');
 ylabel('m');
 ylim([50,500])
 mypdf('fig/inv_fixed_reltol',.66,1.5)

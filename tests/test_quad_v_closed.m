@@ -51,9 +51,8 @@ num_problems = 30;
 % sketching parameter (number of rows of sketched matrix S)
 s = 400;
 
-% "strength" of matrix perturbation (default 0, special
-% case when matrix remains fixed throughout the sequence )
-pert = 1e-08;
+% Do the matrices change ? (set to 0 for no, and 1 for yes)
+mat_change = 1;
 
 % Monitor error every d iterations
 d = 1;
@@ -200,7 +199,7 @@ semilogy(rfom_quad2_err,'-*');
 semilogy(rfom_closed_err,'V-');
 semilogy(srfom_err,'+--');
 legend('FOM','rFOM (quad) 50','rFOM (quad) 100','rFOM (Algorithm 2.1)','srFOM (Algorithm 3.1)');
-xlabel('problem')
+xlabel('problem $i$', 'interpreter','latex');
 ylabel('relative error')
 mypdf('fig/inv_sqrt_compare',.66,1.5)
 shg
